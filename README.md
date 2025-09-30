@@ -36,38 +36,65 @@ Ingestion Pipeline → Indexing Layer → Retrieval System → MCP Server
 - **SQLite** with FTS5 - Keyword search and metadata
 - **MCP SDK** - Server implementation
 
-## Project Status
+## 🚀 Quick Start
 
-Early development. See `claude_code_prompt.md` for detailed implementation specification and `CLAUDE.md` for development guidance.
+### For VSCode Users (Windows)
 
-## Planned Usage
+**5-minute setup:**
 
-```bash
-# Index a PDF document
-python -m mcp_embedded_docs ingest S32K-RM.pdf
-
-# Start MCP server
-python -m mcp_embedded_docs serve
-
-# List indexed documents
-python -m mcp_embedded_docs list
+```powershell
+git clone https://github.com/yourusername/bitwise-mcp.git .mcp-docs
+cd .mcp-docs
+.\setup-mcp.ps1        # Auto-configure for Claude Code
+.\index-docs.ps1       # Index your docs
+# Restart VSCode - Done!
 ```
 
-## MCP Tools (Planned)
+See [QUICKSTART.md](QUICKSTART.md) for details.
+
+### Manual Installation
+
+```bash
+poetry install
+
+# Index your documentation
+poetry run mcp-embedded-docs ingest docs/manual.pdf --title "MCU Manual"
+
+# Start MCP server (for Claude Code/Claude Desktop)
+poetry run mcp-embedded-docs serve
+```
+
+See [USAGE.md](USAGE.md) for detailed guide.
+
+## MCP Tools
 
 - `search_docs(query, top_k, doc_filter)` - Search documentation with hybrid retrieval
 - `find_register(name, peripheral)` - Find specific register definitions
-- `get_section(doc_id, section)` - Retrieve specific sections
 - `list_docs()` - List all indexed documents
 
-## Development Priorities
+## Usage Example
 
-1. PDF parsing and table detection
-2. Register table extraction (most critical component)
-3. Test on S32K144 sample pages
-4. Semantic chunking and indexing
-5. Retrieval system
-6. MCP server implementation
+Once configured with Claude Code in VSCode, just ask:
+
+```
+What's the base address for FlexCAN0?
+```
+
+```
+How do I configure GPIO pins?
+```
+
+```
+Show me the clock configuration registers
+```
+
+Claude Code automatically searches your documentation and provides answers!
+
+## Project Status
+
+✅ **Fully Working** - Successfully tested with 2,179-page S32K144 manual
+
+See [PROJECT_STATUS.md](PROJECT_STATUS.md) for complete implementation details.
 
 ## License
 
