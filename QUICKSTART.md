@@ -71,11 +71,16 @@ Done! New docs are now searchable.
 
 ### Don't have Poetry?
 
+**What is Poetry?** A Python package manager (like npm). Makes installation automatic.
+
+**Install it:**
 ```powershell
 (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
 ```
 
 Then restart your terminal and try again.
+
+**Don't want Poetry?** See [INSTALLATION_OPTIONS.md](INSTALLATION_OPTIONS.md) for pip-based alternatives.
 
 ### Claude Code not seeing docs?
 
