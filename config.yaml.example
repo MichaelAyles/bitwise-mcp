@@ -1,0 +1,30 @@
+doc_dirs:
+  - ./docs
+
+embeddings:
+  model: "BAAI/bge-small-en-v1.5"
+  device: "cpu"
+  batch_size: 32
+
+llm_fallback:
+  enabled: false
+  provider: "openrouter"
+  api_key_env: "OPENROUTER_API_KEY"
+  model: "anthropic/claude-3-haiku"
+  cache_results: true
+
+chunking:
+  target_size: 1000
+  overlap: 100
+  preserve_tables: true
+
+search:
+  keyword_weight: 0.4
+  semantic_weight: 0.6
+  top_k_default: 5
+
+index:
+  directory: "./index"
+  vector_file: "vectors.faiss"
+  metadata_db: "metadata.db"
+  documents_file: "documents.json"
