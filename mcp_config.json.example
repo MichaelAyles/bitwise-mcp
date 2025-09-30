@@ -1,0 +1,38 @@
+{
+  "mcpServers": {
+    "embedded-docs": {
+      "command": "poetry",
+      "args": [
+        "run",
+        "mcp-embedded-docs",
+        "serve"
+      ],
+      "cwd": "C:\\absolute\\path\\to\\bitwise-mcp"
+    }
+  }
+}
+
+// Alternative: If installed with pip globally
+// {
+//   "mcpServers": {
+//     "embedded-docs": {
+//       "command": "mcp-embedded-docs",
+//       "args": ["serve"]
+//     }
+//   }
+// }
+
+// Alternative: Per-project installation
+// {
+//   "mcpServers": {
+//     "project-docs": {
+//       "command": "poetry",
+//       "args": [
+//         "run",
+//         "mcp-embedded-docs",
+//         "serve"
+//       ],
+//       "cwd": "${workspaceFolder}\\.mcp-docs"
+//     }
+//   }
+// }
