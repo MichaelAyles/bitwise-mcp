@@ -83,6 +83,7 @@ Output format is designed for minimal token usage:
 1. **Commit after each feature** - Create a git commit immediately after completing each distinct feature or component
 2. **Only commit when error-free** - NEVER commit code that has errors, failing tests, or any part of the project in a broken state
 3. **Verify before committing** - Always run tests and verify functionality before creating a commit
+4. **Use subagents liberally** - Leverage the Task tool with specialized agents as much as needed for complex tasks, parallel work, or deep analysis
 
 ### Initial Setup (when implementing)
 ```bash
