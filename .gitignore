@@ -37,7 +37,11 @@ docs/
 index/
 *.db
 *.faiss
+*.ids
 config.yaml
+
+# Test outputs
+test_*.py
 
 # Testing
 .pytest_cache/
