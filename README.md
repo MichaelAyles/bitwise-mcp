@@ -30,6 +30,18 @@ Ingest any files that haven't been ingested yet
 What's the base address for FlexCAN0?
 ```
 
+### Example: Checking Available PDFs
+
+![Listing available PDFs](images/Screenshot%20(10).PNG)
+
+### Example: Searching Documentation
+
+The MCP server automatically queries the indexed documentation when you ask questions:
+
+![Documentation search in action](images/Screenshot%20(11).PNG)
+
+### CLI Usage
+
 Or use CLI directly:
 
 ```bash
