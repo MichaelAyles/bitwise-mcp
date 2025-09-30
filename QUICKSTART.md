@@ -8,7 +8,7 @@ The fastest way to get your MCU documentation into Claude Code.
 
 ```powershell
 # In your MCU project directory
-git clone https://github.com/yourusername/bitwise-mcp.git .mcp-docs
+git clone https://github.com/MichaelAyles/bitwise-mcp.git .mcp-docs
 cd .mcp-docs
 poetry install
 ```

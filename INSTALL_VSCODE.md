@@ -12,7 +12,7 @@ On your Windows dev PC:
 
 ```powershell
 # Clone this repo
-git clone https://github.com/yourusername/bitwise-mcp.git
+git clone https://github.com/MichaelAyles/bitwise-mcp.git
 cd bitwise-mcp
 
 # Install with Poetry (or pip)

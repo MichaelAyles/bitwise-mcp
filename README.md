@@ -49,7 +49,7 @@ Ingestion Pipeline → Indexing Layer → Retrieval System → MCP Server
 **5-minute setup:**
 
 ```powershell
-git clone https://github.com/yourusername/bitwise-mcp.git .mcp-docs
+git clone https://github.com/MichaelAyles/bitwise-mcp.git .mcp-docs
 cd .mcp-docs
 .\setup-mcp.ps1        # Auto-configure for Claude Code
 .\index-docs.ps1       # Index your docs
