@@ -78,6 +78,12 @@ Output format is designed for minimal token usage:
 
 ## Development Workflow
 
+### HARD RULES - MUST FOLLOW
+
+1. **Commit after each feature** - Create a git commit immediately after completing each distinct feature or component
+2. **Only commit when error-free** - NEVER commit code that has errors, failing tests, or any part of the project in a broken state
+3. **Verify before committing** - Always run tests and verify functionality before creating a commit
+
 ### Initial Setup (when implementing)
 ```bash
 poetry install
@@ -98,6 +104,13 @@ python -m mcp_embedded_docs serve
 ```bash
 pytest tests/
 ```
+
+### Typical Development Cycle
+1. Implement a feature/component
+2. Test thoroughly (run pytest, verify functionality)
+3. Fix any errors or issues
+4. Once everything works with no errors, commit
+5. Move to next feature
 
 ## Implementation Priority
 
