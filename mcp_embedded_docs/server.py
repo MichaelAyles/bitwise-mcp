@@ -11,6 +11,8 @@ from .config import Config
 from .tools.search_docs import search_docs
 from .tools.find_register import find_register
 from .tools.list_docs import list_docs
+from .tools.list_pdfs import list_pdfs
+from .tools.ingest_pdf import ingest_pdf
 
 
 # Global config
@@ -83,6 +85,38 @@ async def list_tools() -> list[Tool]:
                 "type": "object",
                 "properties": {}
             }
+        ),
+        Tool(
+            name="list_pdfs",
+            description="List all PDF files in configured directories with their ingestion status. "
+                       "Shows which PDFs are already indexed and which are available to ingest.",
+            inputSchema={
+                "type": "object",
+                "properties": {}
+            }
+        ),
+        Tool(
+            name="ingest_pdf",
+            description="Ingest a PDF document into the search index. Extracts text, detects register tables, "
+                       "creates embeddings, and makes the document searchable.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "pdf_path": {
+                        "type": "string",
+                        "description": "Path to the PDF file to ingest"
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "Optional document title"
+                    },
+                    "version": {
+                        "type": "string",
+                        "description": "Optional document version"
+                    }
+                },
+                "required": ["pdf_path"]
+            }
         )
     ]
 
@@ -111,6 +145,20 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
     elif name == "list_docs":
         result = await list_docs(config)
+
+        return [TextContent(type="text", text=result)]
+
+    elif name == "list_pdfs":
+        result = await list_pdfs(config)
+
+        return [TextContent(type="text", text=result)]
+
+    elif name == "ingest_pdf":
+        pdf_path = arguments["pdf_path"]
+        title = arguments.get("title")
+        version = arguments.get("version")
+
+        result = await ingest_pdf(pdf_path, title, version, config)
 
         return [TextContent(type="text", text=result)]
 
