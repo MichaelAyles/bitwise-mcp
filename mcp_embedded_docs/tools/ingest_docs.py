@@ -1,4 +1,4 @@
-"""Ingest PDF tool."""
+"""Ingest documentation tool."""
 
 import asyncio
 import hashlib
@@ -14,12 +14,14 @@ from ..indexing.vector_store import VectorStore
 from ..indexing.metadata_store import MetadataStore
 
 
-async def ingest_pdf(pdf_path: str, title: Optional[str] = None, version: Optional[str] = None,
-                     config: Optional[Config] = None) -> str:
-    """Ingest a PDF document into the index.
+async def ingest_docs(doc_path: str, title: Optional[str] = None, version: Optional[str] = None,
+                      config: Optional[Config] = None) -> str:
+    """Ingest a documentation file into the index.
+
+    Currently supports PDF files. Future support planned for other formats.
 
     Args:
-        pdf_path: Path to PDF file
+        doc_path: Path to documentation file
         title: Optional document title
         version: Optional document version
         config: Configuration object
@@ -30,23 +32,23 @@ async def ingest_pdf(pdf_path: str, title: Optional[str] = None, version: Option
     if config is None:
         config = Config.load()
 
-    pdf_path_obj = Path(pdf_path)
+    doc_path_obj = Path(doc_path)
 
-    if not pdf_path_obj.exists():
-        return f"❌ Error: PDF file not found: {pdf_path}"
+    if not doc_path_obj.exists():
+        return f"❌ Error: Documentation file not found: {doc_path}"
 
-    if not pdf_path_obj.suffix.lower() == '.pdf':
-        return f"❌ Error: File is not a PDF: {pdf_path}"
+    if not doc_path_obj.suffix.lower() == '.pdf':
+        return f"❌ Error: Currently only PDF files are supported. Got: {doc_path_obj.suffix}"
 
     try:
         # Generate document ID from filename
-        doc_id = hashlib.md5(pdf_path_obj.name.encode()).hexdigest()[:16]
+        doc_id = hashlib.md5(doc_path_obj.name.encode()).hexdigest()[:16]
 
-        lines = [f"# Ingesting: {pdf_path_obj.name}", ""]
+        lines = [f"# Ingesting: {doc_path_obj.name}", ""]
 
         # Parse PDF
         lines.append("## 1️⃣ Parsing PDF...")
-        with PDFParser(pdf_path_obj) as parser:
+        with PDFParser(doc_path_obj) as parser:
             pages = parser.extract_text_with_layout()
             toc = parser.extract_toc()
             sections = parser.detect_sections(pages, toc)
@@ -56,10 +58,10 @@ async def ingest_pdf(pdf_path: str, title: Optional[str] = None, version: Option
 
         # Detect and extract tables
         lines.append("## 2️⃣ Detecting register tables...")
-        extractor = TableExtractor(str(pdf_path_obj))
+        extractor = TableExtractor(str(doc_path_obj))
 
         all_tables = []
-        with TableDetector(str(pdf_path_obj)) as detector:
+        with TableDetector(str(doc_path_obj)) as detector:
             for page in pages:
                 table_regions = detector.detect_register_tables(page)
 
@@ -97,7 +99,7 @@ async def ingest_pdf(pdf_path: str, title: Optional[str] = None, version: Option
         # Add document metadata
         metadata_store.add_document(
             doc_id=doc_id,
-            filename=pdf_path_obj.name,
+            filename=doc_path_obj.name,
             title=title,
             version=version
         )
@@ -135,7 +137,7 @@ async def ingest_pdf(pdf_path: str, title: Optional[str] = None, version: Option
         lines.append("")
         lines.append("---")
         lines.append("")
-        lines.append(f"✅ **Successfully indexed {pdf_path_obj.name}**")
+        lines.append(f"✅ **Successfully indexed {doc_path_obj.name}**")
         lines.append("")
         lines.append(f"- **Document ID:** `{doc_id}`")
         lines.append(f"- **Total chunks:** {len(chunks)}")

@@ -281,6 +281,61 @@ class MetadataStore:
 
         return docs
 
+    def get_document_stats(self, doc_id: str) -> Optional[Dict[str, Any]]:
+        """Get statistics for a document.
+
+        Args:
+            doc_id: Document identifier
+
+        Returns:
+            Dictionary with chunk count and table count, or None if document not found
+        """
+        cursor = self.conn.cursor()
+
+        # Get total chunk count
+        cursor.execute("SELECT COUNT(*) as count FROM chunks WHERE doc_id = ?", (doc_id,))
+        chunk_count = cursor.fetchone()["count"]
+
+        # Get table count (chunks with type 'table')
+        cursor.execute("SELECT COUNT(*) as count FROM chunks WHERE doc_id = ? AND chunk_type = 'table'", (doc_id,))
+        table_count = cursor.fetchone()["count"]
+
+        return {
+            "chunks": chunk_count,
+            "tables": table_count
+        }
+
+    def delete_document(self, doc_id: str) -> bool:
+        """Delete a document and all its chunks.
+
+        Args:
+            doc_id: Document identifier to delete
+
+        Returns:
+            True if document was deleted, False if not found
+        """
+        cursor = self.conn.cursor()
+
+        # Check if document exists
+        cursor.execute("SELECT id FROM documents WHERE id = ?", (doc_id,))
+        if not cursor.fetchone():
+            return False
+
+        # Delete registers associated with chunks
+        cursor.execute("""
+            DELETE FROM registers
+            WHERE chunk_id IN (SELECT id FROM chunks WHERE doc_id = ?)
+        """, (doc_id,))
+
+        # Delete chunks (triggers will handle FTS cleanup)
+        cursor.execute("DELETE FROM chunks WHERE doc_id = ?", (doc_id,))
+
+        # Delete document
+        cursor.execute("DELETE FROM documents WHERE id = ?", (doc_id,))
+
+        self.conn.commit()
+        return True
+
     def close(self):
         """Close database connection."""
         if self.conn:

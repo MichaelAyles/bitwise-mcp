@@ -11,8 +11,8 @@ from .config import Config
 from .tools.search_docs import search_docs
 from .tools.find_register import find_register
 from .tools.list_docs import list_docs
-from .tools.list_pdfs import list_pdfs
-from .tools.ingest_pdf import ingest_pdf
+from .tools.ingest_docs import ingest_docs
+from .tools.remove_docs import remove_docs
 
 
 # Global config
@@ -80,31 +80,23 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="list_docs",
-            description="List all indexed documents with their metadata.",
+            description="List all documentation files with their status. Shows indexed documents with "
+                       "statistics (chunks, tables) and available files ready for ingestion (pages, size).",
             inputSchema={
                 "type": "object",
                 "properties": {}
             }
         ),
         Tool(
-            name="list_pdfs",
-            description="List all PDF files in configured directories with their ingestion status. "
-                       "Shows which PDFs are already indexed and which are available to ingest.",
-            inputSchema={
-                "type": "object",
-                "properties": {}
-            }
-        ),
-        Tool(
-            name="ingest_pdf",
-            description="Ingest a PDF document into the search index. Extracts text, detects register tables, "
-                       "creates embeddings, and makes the document searchable.",
+            name="ingest_docs",
+            description="Ingest a documentation file into the search index. Extracts text, detects register tables, "
+                       "creates embeddings, and makes the document searchable. Currently supports PDF files.",
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "pdf_path": {
+                    "doc_path": {
                         "type": "string",
-                        "description": "Path to the PDF file to ingest"
+                        "description": "Path to the documentation file to ingest"
                     },
                     "title": {
                         "type": "string",
@@ -115,7 +107,21 @@ async def list_tools() -> list[Tool]:
                         "description": "Optional document version"
                     }
                 },
-                "required": ["pdf_path"]
+                "required": ["doc_path"]
+            }
+        ),
+        Tool(
+            name="remove_docs",
+            description="Remove a document from the search index by its document ID.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "doc_id": {
+                        "type": "string",
+                        "description": "Document ID to remove"
+                    }
+                },
+                "required": ["doc_id"]
             }
         )
     ]
@@ -148,17 +154,19 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
         return [TextContent(type="text", text=result)]
 
-    elif name == "list_pdfs":
-        result = await list_pdfs(config)
-
-        return [TextContent(type="text", text=result)]
-
-    elif name == "ingest_pdf":
-        pdf_path = arguments["pdf_path"]
+    elif name == "ingest_docs":
+        doc_path = arguments["doc_path"]
         title = arguments.get("title")
         version = arguments.get("version")
 
-        result = await ingest_pdf(pdf_path, title, version, config)
+        result = await ingest_docs(doc_path, title, version, config)
+
+        return [TextContent(type="text", text=result)]
+
+    elif name == "remove_docs":
+        doc_id = arguments["doc_id"]
+
+        result = await remove_docs(doc_id, config)
 
         return [TextContent(type="text", text=result)]
 
