@@ -50,18 +50,18 @@ def ingest(pdf_path: str, title: str = None, version: str = None):
 
     # Detect and extract tables
     click.echo("Detecting register tables...")
-    detector = TableDetector()
     extractor = TableExtractor(str(pdf_path))
 
     all_tables = []
-    for page in pages:
-        table_regions = detector.detect_register_tables(page)
+    with TableDetector(str(pdf_path)) as detector:
+        for page in pages:
+            table_regions = detector.detect_register_tables(page)
 
-        for region in table_regions:
-            context = detector.detect_table_context(page, region)
-            table = extractor.extract_register_table(region, context)
-            if table:
-                all_tables.append(table)
+            for region in table_regions:
+                context = detector.detect_table_context(page, region)
+                table = extractor.extract_register_table(region, context)
+                if table:
+                    all_tables.append(table)
 
     click.echo(f"  Found {len(all_tables)} register tables")
 

@@ -56,18 +56,18 @@ async def ingest_pdf(pdf_path: str, title: Optional[str] = None, version: Option
 
         # Detect and extract tables
         lines.append("## 2️⃣ Detecting register tables...")
-        detector = TableDetector()
         extractor = TableExtractor(str(pdf_path_obj))
 
         all_tables = []
-        for page in pages:
-            table_regions = detector.detect_register_tables(page)
+        with TableDetector(str(pdf_path_obj)) as detector:
+            for page in pages:
+                table_regions = detector.detect_register_tables(page)
 
-            for region in table_regions:
-                context = detector.detect_table_context(page, region)
-                table = extractor.extract_register_table(region, context)
-                if table:
-                    all_tables.append(table)
+                for region in table_regions:
+                    context = detector.detect_table_context(page, region)
+                    table = extractor.extract_register_table(region, context)
+                    if table:
+                        all_tables.append(table)
 
         lines.append(f"✓ Found {len(all_tables)} register tables")
         lines.append("")

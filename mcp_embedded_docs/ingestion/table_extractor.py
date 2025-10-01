@@ -62,18 +62,14 @@ class TableExtractor:
         with pdfplumber.open(self.pdf_path) as pdf:
             page = pdf.pages[table_region.page_num]
 
-            # Crop to table region
-            bbox = table_region.bbox
-            cropped = page.crop(bbox)
+            # Extract all tables and get the specific one we want
+            tables = page.extract_tables()
 
-            # Extract table
-            tables = cropped.extract_tables()
-
-            if not tables:
+            if not tables or table_region.table_index >= len(tables):
                 return None
 
-            # Process the first table found
-            table_data = tables[0]
+            # Get the specific table by index
+            table_data = tables[table_region.table_index]
 
             if not table_data or len(table_data) < 2:  # Need header + at least one row
                 return None
@@ -90,7 +86,22 @@ class TableExtractor:
 
     def _parse_register_map(self, table_data: List[List[str]], context: str) -> RegisterTable:
         """Parse a register map table."""
-        header = [self._normalize_header(h) for h in table_data[0]]
+        # Find the actual header row (might not be row 0 if there's a title row)
+        header_row_idx = 0
+        header = None
+
+        for i in range(min(3, len(table_data))):  # Check first 3 rows for header
+            test_header = [self._normalize_header(h) for h in table_data[i]]
+
+            # Check if this looks like a header (has keywords like name, offset, etc.)
+            if any(keyword in ' '.join(test_header) for keyword in ['name', 'register', 'offset', 'address', 'bit']):
+                header_row_idx = i
+                header = test_header
+                break
+
+        if not header:
+            # Fallback to first row
+            header = [self._normalize_header(h) for h in table_data[0]]
 
         # Find column indices
         name_col = self._find_column(header, ["name", "register"])
@@ -103,14 +114,15 @@ class TableExtractor:
 
         registers = []
 
-        for row in table_data[1:]:
+        # Start from row after header
+        for row in table_data[header_row_idx + 1:]:
             if not row or not any(row):  # Skip empty rows
                 continue
 
             # Clean up cells
             row = [self._clean_cell(cell) for cell in row]
 
-            name = row[name_col] if name_col is not None else ""
+            name = row[name_col] if name_col is not None and name_col < len(row) else ""
             if not name:
                 continue
 

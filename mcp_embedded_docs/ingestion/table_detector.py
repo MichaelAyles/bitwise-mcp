@@ -5,6 +5,8 @@ from enum import Enum
 from typing import List, Set, Tuple, Optional
 import re
 
+import pdfplumber
+
 from .pdf_parser import Page, TextBlock
 
 
@@ -23,6 +25,7 @@ class TableRegion:
     bbox: Tuple[float, float, float, float]  # (x0, y0, x1, y1)
     table_type: TableType
     header_keywords: Set[str]
+    table_index: int = 0  # Index of table on the page (for pdfplumber)
 
 
 class TableDetector:
@@ -47,16 +50,29 @@ class TableDetector:
         "bit field", "bitfield", "field description"
     }
 
-    def __init__(self, min_columns: int = 3):
+    def __init__(self, pdf_path: str, min_columns: int = 3):
         """Initialize table detector.
 
         Args:
+            pdf_path: Path to the PDF file
             min_columns: Minimum number of columns to consider something a table
         """
+        self.pdf_path = pdf_path
         self.min_columns = min_columns
+        self._pdf = None
+
+    def __enter__(self):
+        """Context manager entry."""
+        self._pdf = pdfplumber.open(self.pdf_path)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit."""
+        if self._pdf:
+            self._pdf.close()
 
     def detect_register_tables(self, page: Page) -> List[TableRegion]:
-        """Detect register tables on a page.
+        """Detect register tables on a page using pdfplumber.
 
         Args:
             page: Page to analyze
@@ -66,19 +82,48 @@ class TableDetector:
         """
         tables = []
 
-        # Group blocks by vertical position (y-coordinate)
-        rows = self._group_blocks_into_rows(page.blocks)
+        # Use cached PDF if available, otherwise open temporarily
+        if self._pdf:
+            pdf = self._pdf
+            should_close = False
+        else:
+            pdf = pdfplumber.open(self.pdf_path)
+            should_close = True
 
-        # Look for header rows
-        for i, row in enumerate(rows):
-            header_keywords = self._extract_header_keywords(row)
+        try:
+            pdf_page = pdf.pages[page.page_num]
 
-            if self._is_likely_table_header(header_keywords):
-                # Find table boundaries
-                table_region = self._extract_table_region(page, rows, i)
+            # Extract all tables from the page
+            extracted_tables = pdf_page.extract_tables()
 
-                if table_region:
-                    tables.append(table_region)
+            for table_idx, table_data in enumerate(extracted_tables):
+                if not table_data or len(table_data) < 2:
+                    continue
+
+                # Get first 2 rows to analyze headers
+                header_rows = table_data[:2]
+                header_text = ' '.join(
+                    str(cell) for row in header_rows for cell in row if cell
+                ).lower()
+
+                # Extract keywords from header
+                header_keywords = self._extract_keywords_from_text(header_text)
+
+                # Check if this is a register-related table
+                if self._is_likely_table_header(header_keywords):
+                    table_type = self._classify_table_type(header_keywords)
+
+                    # Create a table region with the table index
+                    tables.append(TableRegion(
+                        page_num=page.page_num,
+                        bbox=(0, 0, pdf_page.width, pdf_page.height),
+                        table_type=table_type,
+                        header_keywords=header_keywords,
+                        table_index=table_idx
+                    ))
+        finally:
+            if should_close:
+                pdf.close()
 
         return tables
 
@@ -108,6 +153,23 @@ class TableDetector:
             rows.append(sorted(current_row, key=lambda b: b.bbox[0]))
 
         return rows
+
+    def _extract_keywords_from_text(self, text: str) -> Set[str]:
+        """Extract keywords from text."""
+        keywords = set()
+
+        # Normalize text
+        text = text.lower().strip()
+        # Remove common punctuation
+        text = re.sub(r'[^\w\s]', '', text)
+
+        # Split into words and extract meaningful keywords
+        words = text.split()
+        for word in words:
+            if len(word) > 2:  # Skip very short words
+                keywords.add(word)
+
+        return keywords
 
     def _extract_header_keywords(self, row: List[TextBlock]) -> Set[str]:
         """Extract keywords from a potential header row."""
