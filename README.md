@@ -46,15 +46,16 @@ Or use CLI directly:
 
 ```bash
 poetry run mcp-embedded-docs ingest docs/manual.pdf --title "MCU Manual"
+poetry run mcp-embedded-docs list  # View indexed documents
 ```
 
 ## MCP Tools
 
 - **search_docs** - Search documentation with hybrid retrieval
 - **find_register** - Find specific register definitions
-- **list_docs** - List all indexed documents
-- **list_pdfs** - List available PDFs with ingestion status
-- **ingest_pdf** - Ingest a PDF into the search index
+- **list_docs** - List all documentation files with status (indexed + available)
+- **ingest_docs** - Ingest documentation files into the search index
+- **remove_docs** - Remove documents from the search index by ID
 
 ## Tech Stack
 
@@ -67,4 +68,4 @@ Python 3.10+ • PyMuPDF • pdfplumber • sentence-transformers • FAISS • 
 
 ## License
 
-MIT
+[MIT](LICENSE)

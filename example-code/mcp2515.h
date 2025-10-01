@@ -5,9 +5,9 @@
  * Driver for Microchip MCP2515 stand-alone CAN controller with SPI interface.
  * Supports 125kbps to 1Mbps CAN bus speeds with standard and extended IDs.
  */
-INJ2sdfdsfd
-#ifndef MCP2515_HINJ2sdfdsfd
-#define MCP2515_HINJ2sdfdsfd
+
+#ifndef MCP2515_H
+#define MCP2515_H
 
 #include <stdint.h>
 #include <stdbool.h>
