@@ -1,17 +1,29 @@
 # bitwise-mcp
 
-MCP server for embedded developers. Ingests PDF reference manuals (1000+ pages), extracts register definitions, and provides fast semantic search.
+MCP server for embedded developers. Ingests PDF reference manuals (1000+ pages), extracts register definitions, and provides fast semantic search. Built with [FastMCP](https://github.com/jlowin/fastmcp) and available as a Claude Code plugin.
 
 ## Features
 
 - **PDF Ingestion** - Parses large reference manuals preserving structure
 - **Register Table Extraction** - Detects and converts register definitions to structured JSON
 - **Hybrid Search** - Combines keyword matching (SQLite FTS5) with semantic similarity (FAISS)
+- **Context-Aware Chunking** - Chunks include section hierarchy prefixes (e.g. `[Manual > FlexCAN > MCR Register]`) for better retrieval
+- **Sentence-Aware Splitting** - Text splits on sentence boundaries with 1-2 sentence overlap, never mid-word
 - **Compact Output** - Formats responses to minimize token usage
 
 ## Installation
 
-### Option 1: Global Install (Recommended for Multi-Project Use)
+### Option 1: Claude Code Plugin (Recommended)
+
+Install directly from the Claude Code plugin marketplace:
+
+```bash
+claude plugin add bitwise-embedded-docs
+```
+
+This registers the MCP server and adds `/ingest-docs` and `/search-docs` slash commands.
+
+### Option 2: Global Install
 
 Install once, use across all projects:
 
@@ -23,14 +35,9 @@ pip install -e .
 claude mcp add --scope project embedded-docs python -m mcp_embedded_docs
 ```
 
-**How it works:** The global install makes the MCP server code available system-wide, but each project maintains its own isolated documentation index. When you run the server in a project, it only indexes and searches PDFs in that project's `docs/` directory. Projects don't share documentation data.
+Each project maintains its own isolated documentation index. When you run the server in a project, it only indexes and searches PDFs in that project's `docs/` directory.
 
-**Example:**
-- Project A with `docs/` folder → indexes only Project A's PDFs
-- Project B with `docs/` folder → indexes only Project B's PDFs
-- Both use the same MCP server code, but completely separate data
-
-### Option 2: Poetry Install (For Development)
+### Option 3: Poetry Install (Development)
 
 ```bash
 poetry install
@@ -63,8 +70,6 @@ The MCP server automatically queries the indexed documentation when you ask ques
 
 ### CLI Usage
 
-Or use CLI directly:
-
 ```bash
 poetry run mcp-embedded-docs ingest docs/manual.pdf --title "MCU Manual"
 poetry run mcp-embedded-docs list  # View indexed documents
@@ -72,15 +77,27 @@ poetry run mcp-embedded-docs list  # View indexed documents
 
 ## MCP Tools
 
-- **search_docs** - Search documentation with hybrid retrieval
-- **find_register** - Find specific register definitions
-- **list_docs** - List all documentation files with status (indexed + available)
-- **ingest_docs** - Ingest documentation files into the search index
-- **remove_docs** - Remove documents from the search index by ID
+| Tool | Description |
+|------|-------------|
+| `search_docs` | Search documentation with hybrid keyword + semantic retrieval |
+| `find_register` | Find specific register definitions by name |
+| `list_docs` | List all documentation files with status (indexed + available) |
+| `ingest_docs` | Ingest PDF documentation files into the search index |
+| `remove_docs` | Remove documents from the search index by ID |
+
+## Architecture
+
+Built on [FastMCP](https://github.com/jlowin/fastmcp) for the MCP server layer. The ingestion pipeline:
+
+1. **PDF Parsing** (PyMuPDF) - Extracts text with layout, TOC, and section hierarchy
+2. **Table Detection** (pdfplumber) - Identifies register maps, bitfield definitions, memory maps
+3. **Semantic Chunking** - Leaf-only section chunking with contextual hierarchy prefixes, sentence-aware splitting, and content-based deduplication
+4. **Embedding** (sentence-transformers, bge-small-en-v1.5) - Local embeddings, no API calls
+5. **Indexing** (FAISS + SQLite FTS5) - Hybrid vector + keyword search
 
 ## Tech Stack
 
-Python 3.10+ • PyMuPDF • pdfplumber • sentence-transformers • FAISS • SQLite FTS5
+Python 3.10+ | FastMCP | PyMuPDF | pdfplumber | sentence-transformers | FAISS | SQLite FTS5
 
 ## Performance
 

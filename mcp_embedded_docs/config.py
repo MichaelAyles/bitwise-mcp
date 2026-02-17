@@ -26,8 +26,8 @@ class LLMFallbackConfig(BaseModel):
 
 class ChunkingConfig(BaseModel):
     """Chunking configuration."""
-    target_size: int = 1000
-    overlap: int = 100
+    target_size: int = 2500
+    overlap: int = 200
     preserve_tables: bool = True
 
 

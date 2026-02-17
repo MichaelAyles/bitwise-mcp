@@ -2,17 +2,16 @@
 
 import logging
 from pathlib import Path
-from typing import Optional, List, Dict, Any
-import fitz  # PyMuPDF
+from typing import Optional
 
-from ..retrieval.hybrid_search import HybridSearch
+from ..indexing.metadata_store import MetadataStore
 from ..config import Config
 
 logger = logging.getLogger(__name__)
 
 
 async def list_docs(config: Optional[Config] = None) -> str:
-    """List all documents (both indexed and available for ingestion).
+    """List all PDF files in doc directories and their index status.
 
     Args:
         config: Configuration object
@@ -23,102 +22,45 @@ async def list_docs(config: Optional[Config] = None) -> str:
     if config is None:
         config = Config.load()
 
-    search = HybridSearch(config)
+    # Lightweight DB check for indexed status
+    db_path = config.index.directory / config.index.metadata_db
+    indexed_filenames: dict = {}
+    if db_path.exists():
+        store = MetadataStore(db_path)
+        try:
+            for doc in store.list_documents():
+                indexed_filenames[doc['filename']] = doc
+        finally:
+            store.close()
 
-    try:
-        # Get indexed documents with stats
-        indexed_docs = search.list_documents()
-        indexed_filenames = {doc['filename']: doc for doc in indexed_docs}
+    # Scan doc directories for PDF files
+    all_pdfs = []
+    for doc_dir in config.doc_dirs:
+        if not doc_dir.exists():
+            continue
+        for pdf_path in doc_dir.glob("**/*.pdf"):
+            all_pdfs.append({
+                'path': pdf_path,
+                'name': pdf_path.name,
+                'size_mb': pdf_path.stat().st_size / (1024 * 1024),
+                'indexed': pdf_path.name in indexed_filenames,
+            })
 
-        # Scan doc directories for all PDF files
-        all_pdfs: List[Dict[str, Any]] = []
+    if not all_pdfs:
+        return f"No PDF files found in: {', '.join(str(d) for d in config.doc_dirs)}"
 
-        for doc_dir in config.doc_dirs:
-            if not doc_dir.exists():
-                continue
+    all_pdfs.sort(key=lambda x: (not x['indexed'], x['name']))
 
-            for pdf_path in doc_dir.glob("**/*.pdf"):
-                pdf_name = pdf_path.name
-                is_ingested = pdf_name in indexed_filenames
+    lines = ["# Documentation", ""]
+    indexed_count = sum(1 for p in all_pdfs if p['indexed'])
+    lines.append(f"**{len(all_pdfs)}** PDFs found ({indexed_count} indexed)")
+    lines.append("")
 
-                if is_ingested:
-                    doc_info = indexed_filenames[pdf_name]
-                    # Get statistics
-                    stats = search.metadata_store.get_document_stats(doc_info['id'])
-                    all_pdfs.append({
-                        'path': pdf_path,
-                        'name': pdf_name,
-                        'size_mb': pdf_path.stat().st_size / (1024 * 1024),
-                        'ingested': True,
-                        'id': doc_info['id'],
-                        'title': doc_info.get('title'),
-                        'version': doc_info.get('version'),
-                        'index_date': doc_info['index_date'],
-                        'chunks': stats['chunks'],
-                        'tables': stats['tables']
-                    })
-                else:
-                    # Get PDF metadata for non-ingested files
-                    try:
-                        with fitz.open(pdf_path) as pdf:
-                            page_count = len(pdf)
-                    except Exception:
-                        logger.warning("Failed to read PDF metadata: %s", pdf_path)
-                        page_count = None
+    for pdf in all_pdfs:
+        status = "indexed" if pdf['indexed'] else "not indexed"
+        lines.append(f"- **{pdf['name']}** ({pdf['size_mb']:.1f} MB) — {status}")
+        if pdf['indexed']:
+            doc = indexed_filenames[pdf['name']]
+            lines.append(f"  - ID: `{doc['id']}`")
 
-                    all_pdfs.append({
-                        'path': pdf_path,
-                        'name': pdf_name,
-                        'size_mb': pdf_path.stat().st_size / (1024 * 1024),
-                        'ingested': False,
-                        'pages': page_count
-                    })
-
-        if not all_pdfs:
-            return f"No documents found in configured directories: {', '.join(str(d) for d in config.doc_dirs)}"
-
-        # Sort: ingested first, then by name
-        all_pdfs.sort(key=lambda x: (not x['ingested'], x['name']))
-
-        # Format output
-        lines = ["# Documentation", ""]
-
-        ingested_count = sum(1 for pdf in all_pdfs if pdf['ingested'])
-        not_ingested_count = len(all_pdfs) - ingested_count
-
-        lines.append(f"**Total:** {len(all_pdfs)} documents ({ingested_count} indexed, {not_ingested_count} available)")
-        lines.append("")
-
-        if ingested_count > 0:
-            lines.append("## ✅ Indexed Documents")
-            lines.append("")
-            for pdf in all_pdfs:
-                if pdf['ingested']:
-                    lines.append(f"### {pdf['name']}")
-                    if pdf.get('title'):
-                        lines.append(f"**Title:** {pdf['title']}")
-                    if pdf.get('version'):
-                        lines.append(f"**Version:** {pdf['version']}")
-                    lines.append(f"**ID:** `{pdf['id']}`")
-                    lines.append(f"**Size:** {pdf['size_mb']:.1f} MB")
-                    lines.append(f"**Chunks:** {pdf['chunks']}")
-                    lines.append(f"**Tables:** {pdf['tables']}")
-                    lines.append(f"**Indexed:** {pdf['index_date']}")
-                    lines.append("")
-
-        if not_ingested_count > 0:
-            lines.append("## ⏳ Available for Ingestion")
-            lines.append("")
-            for pdf in all_pdfs:
-                if not pdf['ingested']:
-                    lines.append(f"### {pdf['name']}")
-                    lines.append(f"**Path:** `{pdf['path']}`")
-                    lines.append(f"**Size:** {pdf['size_mb']:.1f} MB")
-                    if pdf.get('pages'):
-                        lines.append(f"**Pages:** {pdf['pages']}")
-                    lines.append("")
-
-        return "\n".join(lines)
-
-    finally:
-        search.close()
+    return "\n".join(lines)

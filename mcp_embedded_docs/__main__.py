@@ -66,6 +66,7 @@ def _cli_group():
         extractor = TableExtractor(str(pdf_path))
 
         all_tables = []
+        table_pages = {}
         with TableDetector(str(pdf_path)) as detector:
             for page in pages:
                 table_regions = detector.detect_register_tables(page)
@@ -73,6 +74,7 @@ def _cli_group():
                     context = detector.detect_table_context(page, region)
                     table = extractor.extract_register_table(region, context)
                     if table:
+                        table_pages[len(all_tables)] = region.page_num
                         all_tables.append(table)
 
         click.echo(f"  Found {len(all_tables)} register tables", err=True)
@@ -84,7 +86,12 @@ def _cli_group():
             preserve_tables=config.chunking.preserve_tables
         )
 
-        chunks = chunker.chunk_document(doc_id, sections, all_tables)
+        doc_title = title or pdf_path.stem
+        chunks = chunker.chunk_document(
+            doc_id, sections, all_tables,
+            doc_title=doc_title,
+            table_pages=table_pages,
+        )
         click.echo(f"  Created {len(chunks)} chunks", err=True)
 
         click.echo("Indexing...", err=True)

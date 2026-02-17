@@ -63,6 +63,7 @@ async def ingest_docs(doc_path: str, title: Optional[str] = None, version: Optio
         extractor = TableExtractor(str(doc_path_obj))
 
         all_tables = []
+        table_pages: dict[int, int] = {}  # table index -> page_num
         with TableDetector(str(doc_path_obj)) as detector:
             for page in pages:
                 table_regions = detector.detect_register_tables(page)
@@ -71,6 +72,7 @@ async def ingest_docs(doc_path: str, title: Optional[str] = None, version: Optio
                     context = detector.detect_table_context(page, region)
                     table = extractor.extract_register_table(region, context)
                     if table:
+                        table_pages[len(all_tables)] = region.page_num
                         all_tables.append(table)
 
         lines.append(f"✓ Found {len(all_tables)} register tables")
@@ -84,7 +86,12 @@ async def ingest_docs(doc_path: str, title: Optional[str] = None, version: Optio
             preserve_tables=config.chunking.preserve_tables
         )
 
-        chunks = chunker.chunk_document(doc_id, sections, all_tables)
+        doc_title = title or doc_path_obj.stem
+        chunks = chunker.chunk_document(
+            doc_id, sections, all_tables,
+            doc_title=doc_title,
+            table_pages=table_pages,
+        )
         lines.append(f"✓ Created {len(chunks)} chunks")
         lines.append("")
 
