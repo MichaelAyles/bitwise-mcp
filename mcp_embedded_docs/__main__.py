@@ -1,5 +1,8 @@
 """CLI entry point for MCP Embedded Docs."""
 
+import logging
+import sys
+
 import click
 from pathlib import Path
 import hashlib
@@ -12,7 +15,8 @@ from .ingestion.chunker import SemanticChunker
 from .indexing.embedder import LocalEmbedder
 from .indexing.vector_store import VectorStore
 from .indexing.metadata_store import MetadataStore
-from .server import main as server_main
+
+logger = logging.getLogger(__name__)
 
 
 @click.group()
@@ -34,22 +38,22 @@ def ingest(pdf_path: str, title: str = None, version: str = None):
     pdf_path = Path(pdf_path)
     config = Config.load()
 
-    click.echo(f"Ingesting {pdf_path.name}...")
+    click.echo(f"Ingesting {pdf_path.name}...", err=True)
 
     # Generate document ID from filename
     doc_id = hashlib.md5(pdf_path.name.encode()).hexdigest()[:16]
 
     # Parse PDF
-    click.echo("Parsing PDF...")
+    click.echo("Parsing PDF...", err=True)
     with PDFParser(pdf_path) as parser:
         pages = parser.extract_text_with_layout()
         toc = parser.extract_toc()
         sections = parser.detect_sections(pages, toc)
 
-    click.echo(f"  Extracted {len(pages)} pages, {len(sections)} sections")
+    click.echo(f"  Extracted {len(pages)} pages, {len(sections)} sections", err=True)
 
     # Detect and extract tables
-    click.echo("Detecting register tables...")
+    click.echo("Detecting register tables...", err=True)
     extractor = TableExtractor(str(pdf_path))
 
     all_tables = []
@@ -63,10 +67,10 @@ def ingest(pdf_path: str, title: str = None, version: str = None):
                 if table:
                     all_tables.append(table)
 
-    click.echo(f"  Found {len(all_tables)} register tables")
+    click.echo(f"  Found {len(all_tables)} register tables", err=True)
 
     # Create chunks
-    click.echo("Creating semantic chunks...")
+    click.echo("Creating semantic chunks...", err=True)
     chunker = SemanticChunker(
         target_size=config.chunking.target_size,
         overlap=config.chunking.overlap,
@@ -74,10 +78,10 @@ def ingest(pdf_path: str, title: str = None, version: str = None):
     )
 
     chunks = chunker.chunk_document(doc_id, sections, all_tables)
-    click.echo(f"  Created {len(chunks)} chunks")
+    click.echo(f"  Created {len(chunks)} chunks", err=True)
 
     # Initialize indexing components
-    click.echo("Indexing...")
+    click.echo("Indexing...", err=True)
     embedder = LocalEmbedder(
         model_name=config.embeddings.model,
         device=config.embeddings.device
@@ -99,14 +103,14 @@ def ingest(pdf_path: str, title: str = None, version: str = None):
     chunk_ids = [chunk.id for chunk in chunks]
 
     # Create embeddings
-    click.echo("  Creating embeddings...")
+    click.echo("  Creating embeddings...", err=True)
     embeddings = embedder.embed_batch(chunk_texts, show_progress=True)
 
     # Add to vector store
     vector_store.add_vectors(embeddings, chunk_ids)
 
     # Add to metadata store
-    click.echo("  Storing metadata...")
+    click.echo("  Storing metadata...", err=True)
     for chunk in chunks:
         metadata_store.add_chunk(
             chunk_id=chunk.id,
@@ -125,21 +129,21 @@ def ingest(pdf_path: str, title: str = None, version: str = None):
 
     metadata_store.close()
 
-    click.echo(f"✓ Successfully indexed {pdf_path.name}")
-    click.echo(f"  Document ID: {doc_id}")
-    click.echo(f"  Total chunks: {len(chunks)}")
-    click.echo(f"  Register tables: {len(all_tables)}")
+    click.echo(f"Successfully indexed {pdf_path.name}", err=True)
+    click.echo(f"  Document ID: {doc_id}", err=True)
+    click.echo(f"  Total chunks: {len(chunks)}", err=True)
+    click.echo(f"  Register tables: {len(all_tables)}", err=True)
 
 
 @cli.command()
 def serve():
     """Start MCP server on stdio."""
-    click.echo("Starting MCP server...")
-    server_main()
+    from .server import mcp
+    mcp.run(transport="stdio")
 
 
-@cli.command()
-def list():
+@cli.command(name="list")
+def list_cmd():
     """List indexed documents."""
     config = Config.load()
     metadata_store = MetadataStore(config.index.directory / config.index.metadata_db)
@@ -148,21 +152,21 @@ def list():
         docs = metadata_store.list_documents()
 
         if not docs:
-            click.echo("No documents indexed yet.")
+            click.echo("No documents indexed yet.", err=True)
             return
 
-        click.echo("Indexed Documents:")
-        click.echo("")
+        click.echo("Indexed Documents:", err=True)
+        click.echo("", err=True)
 
         for doc in docs:
-            click.echo(f"  {doc['filename']}")
+            click.echo(f"  {doc['filename']}", err=True)
             if doc['title']:
-                click.echo(f"    Title: {doc['title']}")
+                click.echo(f"    Title: {doc['title']}", err=True)
             if doc['version']:
-                click.echo(f"    Version: {doc['version']}")
-            click.echo(f"    ID: {doc['id']}")
-            click.echo(f"    Indexed: {doc['index_date']}")
-            click.echo("")
+                click.echo(f"    Version: {doc['version']}", err=True)
+            click.echo(f"    ID: {doc['id']}", err=True)
+            click.echo(f"    Indexed: {doc['index_date']}", err=True)
+            click.echo("", err=True)
     finally:
         metadata_store.close()
 

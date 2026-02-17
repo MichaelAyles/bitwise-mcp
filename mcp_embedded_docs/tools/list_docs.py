@@ -1,11 +1,14 @@
 """List documents tool."""
 
+import logging
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 import fitz  # PyMuPDF
 
 from ..retrieval.hybrid_search import HybridSearch
 from ..config import Config
+
+logger = logging.getLogger(__name__)
 
 
 async def list_docs(config: Optional[Config] = None) -> str:
@@ -59,7 +62,8 @@ async def list_docs(config: Optional[Config] = None) -> str:
                     try:
                         with fitz.open(pdf_path) as pdf:
                             page_count = len(pdf)
-                    except:
+                    except Exception:
+                        logger.warning("Failed to read PDF metadata: %s", pdf_path)
                         page_count = None
 
                     all_pdfs.append({

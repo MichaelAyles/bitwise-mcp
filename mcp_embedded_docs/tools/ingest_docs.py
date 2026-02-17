@@ -1,7 +1,7 @@
 """Ingest documentation tool."""
 
-import asyncio
 import hashlib
+import logging
 from pathlib import Path
 from typing import Optional
 from ..config import Config
@@ -12,6 +12,8 @@ from ..ingestion.chunker import SemanticChunker
 from ..indexing.embedder import LocalEmbedder
 from ..indexing.vector_store import VectorStore
 from ..indexing.metadata_store import MetadataStore
+
+logger = logging.getLogger(__name__)
 
 
 async def ingest_docs(doc_path: str, title: Optional[str] = None, version: Optional[str] = None,
@@ -146,4 +148,5 @@ async def ingest_docs(doc_path: str, title: Optional[str] = None, version: Optio
         return "\n".join(lines)
 
     except Exception as e:
-        return f"❌ **Error during ingestion:** {str(e)}"
+        logger.exception("Ingestion failed for %s", doc_path)
+        return f"**Error during ingestion:** {str(e)}"

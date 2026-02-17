@@ -11,6 +11,27 @@ MCP server for embedded developers. Ingests PDF reference manuals (1000+ pages),
 
 ## Installation
 
+### Option 1: Global Install (Recommended for Multi-Project Use)
+
+Install once, use across all projects:
+
+```bash
+# From this repository directory
+pip install -e .
+
+# Then in ANY project directory where you want to use it
+claude mcp add --scope project embedded-docs python -m mcp_embedded_docs
+```
+
+**How it works:** The global install makes the MCP server code available system-wide, but each project maintains its own isolated documentation index. When you run the server in a project, it only indexes and searches PDFs in that project's `docs/` directory. Projects don't share documentation data.
+
+**Example:**
+- Project A with `docs/` folder → indexes only Project A's PDFs
+- Project B with `docs/` folder → indexes only Project B's PDFs
+- Both use the same MCP server code, but completely separate data
+
+### Option 2: Poetry Install (For Development)
+
 ```bash
 poetry install
 
