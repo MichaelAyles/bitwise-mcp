@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mcp-embedded-docs"
-version = "0.1.0"
+version = "0.3.0"
 description = "MCP server for embedded systems documentation - search registers, memory maps, and datasheets"
 authors = ["Mike A"]
 readme = "README.md"
