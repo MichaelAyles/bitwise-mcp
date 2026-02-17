@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "bitwise-embedded-docs": {
-      "command": "uvx",
-      "args": ["--from", "git+https://github.com/MichaelAyles/bitwise-mcp", "mcp-embedded-docs", "serve"]
+      "command": "python",
+      "args": ["-m", "mcp_embedded_docs", "serve"]
     }
   }
 }
