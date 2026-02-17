@@ -11,7 +11,7 @@
       "name": "bitwise-embedded-docs",
       "source": "./plugins/bitwise-embedded-docs",
       "description": "Search embedded systems documentation, registers, and memory maps from PDF datasheets",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "keywords": ["embedded", "registers", "datasheet", "mcp", "hardware"],
       "category": "development",
       "license": "MIT"

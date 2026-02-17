@@ -1,6 +1,6 @@
 {
   "name": "bitwise-embedded-docs",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Search embedded systems documentation, registers, and memory maps from PDF datasheets via MCP",
   "author": {
     "name": "Bitwise"
